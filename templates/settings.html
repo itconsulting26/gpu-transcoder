@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Réglages</h1>
+<div class="card" style="max-width:560px"><form method="post">{% csrf_token %}
+{% for f in form %}<label>{{ f.label }}</label>{{ f }}{% if f.help_text %}<div class="mut small">{{ f.help_text }}</div>{% endif %}{% if f.errors %}<div class="msg error">{{ f.errors|striptags }}</div>{% endif %}{% endfor %}
+<div class="row" style="margin-top:14px"><button>Enregistrer</button></div>
+</form></div>
+<div class="card small mut">Preset NVENC : p1 (rapide) → p7 (lent, meilleure qualité). Sur GTX 1080, p5 est un bon compromis. Le cq pilote la qualité à débit variable, plafonné par le débit max.</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}{% load humanize %}
+{% block content %}
+<h1>Recherche par nom de fichier</h1>
+<div class="card"><form method="get" class="row">
+<input name="q" value="{{ q }}" placeholder="partie du nom (ex. Alcatraz)" style="min-width:280px" autofocus>
+<select name="server"><option value="">Tous les serveurs</option>{% for s in servers %}<option value="{{ s.pk }}" {% if srv == s.pk|stringformat:'s' %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select>
+<button>Rechercher</button>
+<span class="mut small">Recherche en direct sur le serveur (find, 300 résultats max par serveur) + fichiers déjà connus en base.</span>
+</form></div>
+{% for e in errors %}<div class="msg error">{{ e }}</div>{% endfor %}
+{% if q %}
+<form method="post">{% csrf_token %}<input type="hidden" name="q" value="{{ q }}"><input type="hidden" name="server" value="{{ srv }}">
+<div class="card">
+<div class="mut small" style="margin-bottom:6px">{{ results|length }} résultat(s)</div>
+<table>
+<tr><th style="width:30px"><input type="checkbox" onclick="document.querySelectorAll('.sel').forEach(c=>c.checked=this.checked)"></th><th>Fichier</th><th class="hide">Serveur</th><th class="num">Taille</th><th class="hide">Codec / débit</th><th>État</th></tr>
+{% for r in results %}
+<tr><td><input class="sel" type="checkbox" name="sel" value="{{ r.server.pk }}|{{ r.path }}"></td>
+<td><b>{{ r.name }}</b><div class="mono mut small">{{ r.path }}</div></td>
+<td class="hide">{{ r.server.name }}</td>
+<td class="num">{{ r.size|filesizeformat }}</td>
+<td class="hide mono">{% if r.mf and r.mf.vcodec %}{{ r.mf.vcodec }}{% if r.mf.is_10bit %} 10b{% endif %} · {{ r.mf.bitrate_kbps|intcomma }} kb/s{% else %}<span class="mut">non analysé</span>{% endif %}</td>
+<td>{% if r.mf %}<span class="badge {{ r.mf.status }}">{{ r.mf.get_status_display }}</span>{% if r.mf.needs_transcode and r.mf.status == 'new' %} <span class="badge warn">à transcoder</span>{% endif %}{% endif %}</td></tr>
+{% empty %}<tr><td colspan="6" class="mut">Aucun fichier trouvé.</td></tr>{% endfor %}
+</table>
+<div class="row" style="margin-top:10px">
+<button name="action" value="queue">➕ Ajouter la sélection à la file</button>
+<button name="action" value="queue_force" class="sec" onclick="return confirm('Forcer aussi les formats hors H.264/HEVC ?')">Forcer (tous formats)</button>
+</div></div></form>
+{% endif %}
+{% endblock %}

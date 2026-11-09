@@ -1,0 +1,6 @@
+data/
+keys/
+.env
+.adminpw
+*.pyc
+__pycache__/

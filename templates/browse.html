@@ -1,0 +1,37 @@
+{% extends "base.html" %}{% load humanize %}
+{% block content %}
+<h1>{{ server.name }}</h1>
+<div class="card">
+<div class="row mono small">
+<a href="{% url 'browse' server.pk %}">{{ server.base_path }}</a>{% for c in crumbs %} / <a href="{% url 'browse' server.pk %}?path={{ c.path|urlencode }}">{{ c.name }}</a>{% endfor %}
+</div>
+{% if error %}<div class="msg error" style="margin-top:10px">{{ error }}</div>{% endif %}
+<form method="post" style="margin-top:10px">{% csrf_token %}
+<div class="row">
+  <button name="action" value="scan">🔍 Scanner ce dossier</button>
+  <label style="margin:0;display:flex;align-items:center;gap:6px"><input type="checkbox" name="recursive" value="1" checked> sous-dossiers inclus</label>
+  <span class="mut small">Le scan analyse chaque vidéo (ffprobe) et marque celles &gt; 1,5 Go ou &gt; 4 Mb/s (réglable).</span>
+</div>
+<table style="margin-top:10px">
+<tr><th style="width:30px"><input type="checkbox" onclick="document.querySelectorAll('.sel').forEach(c=>c.checked=this.checked)"></th><th>Nom</th><th class="num">Taille</th><th class="hide">Codec</th><th class="hide num">Débit</th><th class="hide">Durée</th><th>État</th></tr>
+{% if parent %}<tr><td></td><td colspan="6"><a href="{% url 'browse' server.pk %}?path={{ parent|urlencode }}">📁 ..</a></td></tr>{% endif %}
+{% for d in dirs %}<tr><td></td><td colspan="6"><a href="{% url 'browse' server.pk %}?path={{ d.path|urlencode }}">📁 {{ d.name }}</a></td></tr>{% endfor %}
+{% for f in files %}
+<tr{% if not f.is_media %} class="mut"{% endif %}>
+<td>{% if f.is_media %}<input class="sel" type="checkbox" name="sel" value="{{ f.path }}">{% endif %}</td>
+<td>{% if f.is_media %}🎬{% else %}📄{% endif %} {{ f.name }}</td>
+<td class="num">{{ f.size|filesizeformat }}</td>
+<td class="hide mono">{% if f.mf %}{{ f.mf.vcodec }}{% if f.mf.is_10bit %} 10b{% endif %} {{ f.mf.width }}x{{ f.mf.height }}{% endif %}</td>
+<td class="hide num">{% if f.mf and f.mf.bitrate_kbps %}{{ f.mf.bitrate_kbps|intcomma }} kb/s{% endif %}</td>
+<td class="hide">{% if f.mf and f.mf.duration %}{{ f.mf.duration|floatformat:0 }} s{% endif %}</td>
+<td>{% if f.mf %}<span class="badge {{ f.mf.status }}">{{ f.mf.get_status_display }}</span>{% if f.mf.needs_transcode and f.mf.status == 'new' %} <span class="badge warn">à transcoder</span>{% endif %}{% if f.mf.probed_at and not f.mf.supported and not f.mf.probe_error %} <span class="badge">hors H.264/HEVC</span>{% endif %}{% if f.mf.probe_error %} <span class="badge err" title="{{ f.mf.probe_error }}">erreur analyse</span>{% endif %}{% endif %}</td>
+</tr>{% endfor %}
+</table>
+<div class="row" style="margin-top:10px">
+  <button name="action" value="queue">➕ Ajouter la sélection à la file</button>
+  <button name="action" value="queue_force" class="sec" onclick="return confirm('Forcer aussi les formats hors H.264/HEVC (AVI, AV1…) → ils seront convertis en H.264 ?')">Forcer (tous formats)</button>
+  <span class="mut small">Les fichiers sont analysés juste avant le transcodage ; ceux hors H.264/HEVC sont refusés sauf en mode forcé.</span>
+</div>
+</form>
+</div>
+{% endblock %}

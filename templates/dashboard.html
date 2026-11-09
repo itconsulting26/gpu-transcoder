@@ -1,0 +1,84 @@
+{% extends "base.html" %}{% load humanize %}
+{% block content %}
+<h1>Tableau de bord</h1>
+<div class="grid">
+  <div class="card kpi"><div class="v" id="k-active">–</div><div class="l">en cours</div></div>
+  <div class="card kpi"><div class="v" id="k-queued">–</div><div class="l">en attente</div></div>
+  <div class="card kpi"><div class="v">{{ stats.flagged|intcomma }}</div><div class="l">fichiers détectés à transcoder</div></div>
+  <div class="card kpi"><div class="v">{{ stats.done|intcomma }}</div><div class="l">transcodés</div></div>
+  <div class="card kpi"><div class="v" id="k-saved" data-b="{{ stats.saved_bytes }}">–</div><div class="l">espace gagné</div></div>
+</div>
+
+<div class="card">
+  <div class="row" style="justify-content:space-between">
+    <div><span class="dot" id="w-dot"></span><b>Worker</b> <span class="mut" id="w-txt">…</span></div>
+    <div class="mut small" id="gpu-txt">GPU : …</div>
+  </div>
+  <div class="row" style="margin-top:8px;gap:18px">
+    <div style="flex:1;min-width:140px"><div class="small mut">Encodeur NVENC <span id="g-enc">0</span>%</div><div class="bar"><i id="b-enc" style="width:0"></i></div></div>
+    <div style="flex:1;min-width:140px"><div class="small mut">Décodeur NVDEC <span id="g-dec">0</span>%</div><div class="bar"><i id="b-dec" style="width:0"></i></div></div>
+    <div style="flex:1;min-width:140px"><div class="small mut">GPU <span id="g-util">0</span>%</div><div class="bar"><i id="b-util" style="width:0"></i></div></div>
+    <div style="flex:1;min-width:140px"><div class="small mut">VRAM <span id="g-mem">0</span></div><div class="bar"><i id="b-mem" style="width:0"></i></div></div>
+  </div>
+</div>
+
+<h2>Transcodages en cours</h2>
+<div class="card" id="active"><span class="mut">Aucun transcodage en cours.</span></div>
+
+<h2>Scans en cours</h2>
+<div class="card" id="scans"><span class="mut">Aucun scan en cours.</span></div>
+
+<h2>File d'attente <span class="mut" id="q-count"></span></h2>
+<div class="card" id="queued"><span class="mut">File vide.</span></div>
+
+<h2>Derniers résultats</h2>
+<div class="card" id="recent"><span class="mut">Rien pour l'instant.</span></div>
+{% endblock %}
+{% block js %}
+<script>
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function jobRow(j,full){
+  const pct=(j.percent||0).toFixed(1);
+  let m='';
+  if(full){
+    m=`<span>Phase : <b>${esc(j.phase_label)}</b></span>
+       <span>⏱ ${hdur(j.out_time_s)} / ${hdur(j.duration)}</span>
+       <span>⚡ ${j.speed?j.speed.toFixed(2)+'×':'–'}</span>
+       <span>🎞 ${j.fps?Math.round(j.fps)+' fps':'–'}</span>
+       <span>📶 ${j.out_bitrate_kbps?Math.round(j.out_bitrate_kbps)+' kb/s':'–'}</span>
+       <span>💾 ${hsize(j.out_size)} / ${hsize(j.size_before)}</span>
+       <span>⌛ reste ${j.eta_s!=null?hdur(j.eta_s):'–'} · écoulé ${hdur(j.elapsed_s)}</span>
+       <span>${esc(j.codec)}${j.hw?' · décodage GPU':' · décodage CPU'}</span>`;
+  }
+  return `<div class="job"><div class="t"><span class="n"><a href="/jobs/${j.id}/">#${j.id}</a> ${esc(j.name)} <span class="mut small">${esc(j.server)}</span></span>
+    <span><span class="badge ${j.status}">${esc(j.status_label)}</span> <b>${pct}%</b></span></div>
+    ${full?`<div class="bar big" style="margin:6px 0"><i style="width:${pct}%"></i></div>`:''}
+    <div class="m">${m}</div></div>`;
+}
+function recentRow(j){
+  const g=j.gain_pct!=null?`gain ${j.gain_pct.toFixed(1)}% (${hsize(j.size_before)} → ${hsize(j.size_after)})`:(j.error?esc(j.error):'');
+  return `<div class="job"><div class="t"><span class="n"><a href="/jobs/${j.id}/">#${j.id}</a> ${esc(j.name)}</span><span class="badge ${j.status}">${esc(j.status_label)}</span></div><div class="m"><span>${g}</span><span>durée ${hdur(j.elapsed_s)}</span></div></div>`;
+}
+async function tick(){
+  try{
+    const r=await fetch('/api/status/',{credentials:'same-origin'});if(r.status==403||r.status==401){location.reload();return}
+    const d=await r.json();
+    document.getElementById('k-active').textContent=d.active.length;
+    document.getElementById('k-queued').textContent=d.queued_count;
+    document.getElementById('w-dot').className='dot'+(d.worker.alive?' on':'');
+    document.getElementById('w-txt').textContent=(d.worker.alive?'actif':'hors ligne')+(d.worker.paused?' · EN PAUSE':'')+' · '+d.worker.concurrency+' simultané(s)'+(d.worker.message?' · '+d.worker.message:'');
+    const g=d.gpu;
+    document.getElementById('gpu-txt').textContent=`GPU : ${g.name||'?'} · ${g.temp}°C · ${g.power} W`;
+    for(const [k,v] of [['enc',g.enc],['dec',g.dec],['util',g.util]]){document.getElementById('g-'+k).textContent=Math.round(v);document.getElementById('b-'+k).style.width=v+'%'}
+    document.getElementById('g-mem').textContent=`${g.mem_used} / ${g.mem_total} Mo`;document.getElementById('b-mem').style.width=(g.mem_total?100*g.mem_used/g.mem_total:0)+'%';
+    document.getElementById('active').innerHTML=d.active.length?d.active.map(j=>jobRow(j,true)).join(''):'<span class="mut">Aucun transcodage en cours.</span>';
+    document.getElementById('queued').innerHTML=d.queued.length?d.queued.map(j=>jobRow(j,false)).join(''):'<span class="mut">File vide.</span>';
+    document.getElementById('q-count').textContent=d.queued_count?`(${d.queued_count})`:'';
+    document.getElementById('recent').innerHTML=d.recent.length?d.recent.map(recentRow).join(''):'<span class="mut">Rien pour l\'instant.</span>';
+    document.getElementById('scans').innerHTML=d.scans.length?d.scans.map(s=>`<div class="job"><div class="t"><span class="n">${esc(s.server)} : ${esc(s.path)}</span><span class="badge ${s.status}">${s.status}</span></div><div class="m"><span>${s.seen} fichiers vus</span><span>${s.probed} analysés</span><span>${s.flagged} à transcoder</span><span class="mono">${esc(s.current)}</span></div></div>`).join(''):'<span class="mut">Aucun scan en cours.</span>';
+  }catch(e){document.getElementById('w-txt').textContent='erreur de rafraîchissement';}
+}
+document.getElementById('k-saved').textContent=hsize(+document.getElementById('k-saved').dataset.b);
+tick();setInterval(tick,2000);
+</script>
+{% endblock %}

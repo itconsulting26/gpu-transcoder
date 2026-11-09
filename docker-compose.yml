@@ -1,0 +1,38 @@
+services:
+  web:
+    build: .
+    image: gpu-transcoder:latest
+    container_name: gpu-transcoder-web
+    command: gunicorn transcoder.wsgi:application -b 0.0.0.0:8000 -w 3 --timeout 120
+    env_file: .env
+    volumes:
+      - .:/app
+      - ./data:/data
+      - ./keys:/keys:ro
+    ports:
+      - "0.0.0.0:8080:8000"
+    restart: unless-stopped
+
+  worker:
+    image: gpu-transcoder:latest
+    container_name: gpu-transcoder-worker
+    command: python3 manage.py worker
+    env_file: .env
+    volumes:
+      - .:/app
+      - ./data:/data
+      - ./keys:/keys:ro
+      - /sys/devices/virtual/bdi:/sys/devices/virtual/bdi
+    devices:
+      - /dev/fuse
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    depends_on:
+      - web
+    restart: unless-stopped

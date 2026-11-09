@@ -1,0 +1,40 @@
+{% extends "base.html" %}{% load humanize %}
+{% block content %}
+<h1>Fichiers <span class="mut small">{{ total }}</span></h1>
+<div class="card">
+<form method="get" class="row">
+<select name="f" onchange="this.form.submit()">
+<option value="flagged" {% if f == 'flagged' %}selected{% endif %}>À transcoder (détectés)</option>
+<option value="all" {% if f == 'all' %}selected{% endif %}>Tous</option>
+<option value="unsupported" {% if f == 'unsupported' %}selected{% endif %}>Hors H.264/HEVC</option>
+<option value="done" {% if f == 'done' %}selected{% endif %}>Transcodés</option>
+<option value="errors" {% if f == 'errors' %}selected{% endif %}>Erreurs</option>
+</select>
+<select name="server" onchange="this.form.submit()"><option value="">Tous serveurs</option>{% for s in servers %}<option value="{{ s.pk }}" {% if srv == s.pk|stringformat:'s' %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select>
+<input name="q" value="{{ q }}" placeholder="recherche dans le chemin"><button class="sec">Filtrer</button>
+</form>
+</div>
+<form method="post" action="{% url 'files_action' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+<div class="card">
+<table>
+<tr><th style="width:30px"><input type="checkbox" onclick="document.querySelectorAll('.sel').forEach(c=>c.checked=this.checked)"></th><th>Fichier</th><th class="hide">Serveur</th><th class="num">Taille</th><th class="hide">Codec</th><th class="hide num">Débit</th><th>État</th></tr>
+{% for m in page %}
+<tr><td><input class="sel" type="checkbox" name="sel" value="{{ m.pk }}"></td>
+<td><b>{{ m.name }}</b><div class="mono mut small">{{ m.path }}</div></td>
+<td class="hide">{{ m.server.name }}</td>
+<td class="num">{{ m.size|filesizeformat }}</td>
+<td class="hide mono">{{ m.vcodec }}{% if m.is_10bit %} 10b{% endif %}{% if m.width %} {{ m.width }}x{{ m.height }}{% endif %}</td>
+<td class="hide num">{% if m.bitrate_kbps %}{{ m.bitrate_kbps|intcomma }} kb/s{% endif %}</td>
+<td><span class="badge {{ m.status }}">{{ m.get_status_display }}</span>{% if m.needs_transcode and m.status == 'new' %} <span class="badge warn">à transcoder</span>{% endif %}{% if m.probed_at and not m.supported and not m.probe_error %} <span class="badge">hors H.264/HEVC</span>{% endif %}{% if m.probe_error %} <span class="badge err" title="{{ m.probe_error }}">erreur analyse</span>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="7" class="mut">Aucun fichier. Lance un scan depuis un serveur.</td></tr>{% endfor %}
+</table>
+<div class="row" style="margin-top:10px">
+<button name="action" value="queue">➕ Ajouter à la file</button>
+<button name="action" value="queue_force" class="sec" onclick="return confirm('Forcer aussi les formats hors H.264/HEVC ?')">Forcer (tous formats)</button>
+<button name="action" value="ignore" class="sec">Ignorer</button>
+<button name="action" value="unignore" class="sec">Réactiver</button>
+<button name="action" value="forget" class="danger" onclick="return confirm('Retirer ces entrées de la base ? (les fichiers ne sont pas touchés)')">Oublier</button>
+<span class="mut small">{% if page.has_previous %}<a href="?f={{ f }}&server={{ srv }}&q={{ q|urlencode }}&page={{ page.previous_page_number }}">◀</a>{% endif %} page {{ page.number }}/{{ page.paginator.num_pages }} {% if page.has_next %}<a href="?f={{ f }}&server={{ srv }}&q={{ q|urlencode }}&page={{ page.next_page_number }}">▶</a>{% endif %}</span>
+</div>
+</div></form>
+{% endblock %}

@@ -1,0 +1,21 @@
+# Secrets — never commit
+.env
+.adminpw
+mcp-admin/env
+keys/*
+!keys/.gitkeep
+
+# Runtime data (SQLite DB, static files, temp encodes)
+data/*
+!data/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store

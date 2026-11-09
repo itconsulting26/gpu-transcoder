@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row" style="justify-content:space-between"><h1>Serveurs sources</h1><a class="btn" href="{% url 'server_add' %}">+ Ajouter un serveur</a></div>
+<div class="card">
+<table><tr><th>Nom</th><th class="hide">Connexion</th><th class="hide">Racine</th><th class="num">Fichiers</th><th class="num">À transcoder</th><th></th></tr>
+{% for s in servers %}
+<tr><td><b>{{ s.name }}</b>{% if not s.enabled %} <span class="badge">inactif</span>{% endif %}</td>
+<td class="hide mono">{{ s.username }}@{{ s.host }}:{{ s.port }} {% if s.key_file %}🔑{% else %}🔒{% endif %}</td>
+<td class="hide mono">{{ s.base_path }}</td>
+<td class="num">{{ s.n_files }}</td><td class="num">{{ s.n_flagged }}</td>
+<td class="row"><a class="btn sm" href="{% url 'browse' s.pk %}">Parcourir</a>
+<form class="inline" method="post" action="{% url 'server_test' s.pk %}">{% csrf_token %}<button class="sec sm">Tester</button></form>
+<a class="btn sec sm" href="{% url 'server_edit' s.pk %}">Modifier</a>
+<form class="inline" method="post" action="{% url 'server_delete' s.pk %}" onsubmit="return confirm('Supprimer ce serveur et son historique ?')">{% csrf_token %}<button class="danger sm">Suppr.</button></form></td></tr>
+{% empty %}<tr><td colspan="6" class="mut">Aucun serveur. Ajoute un serveur SSH pour commencer.</td></tr>{% endfor %}
+</table></div>
+<div class="card small mut">Clés privées disponibles dans <span class="mono">/opt/gpu-transcoder/keys/</span> : {% for k in keys %}<span class="mono">{{ k }}</span>{% if not forloop.last %}, {% endif %}{% empty %}aucune (dépose un fichier de clé dans ce dossier, ou utilise un mot de passe){% endfor %}</div>
+{% endblock %}

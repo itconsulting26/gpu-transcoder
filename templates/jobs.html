@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Jobs</h1>
+<div class="card"><form method="get" class="row"><select name="status" onchange="this.form.submit()"><option value="">Tous</option>{% for k, v in statuses %}<option value="{{ k }}" {% if st == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></form></div>
+<div class="card"><table>
+<tr><th>#</th><th>Fichier</th><th class="hide">Serveur</th><th>État</th><th class="num">%</th><th class="hide num">Avant → après</th><th class="hide">Créé</th><th></th></tr>
+{% for j in page %}
+<tr><td><a href="{% url 'job_detail' j.pk %}">{{ j.pk }}</a></td><td>{{ j.file.name }}{% if j.force %} <span class="badge">forcé</span>{% endif %}</td><td class="hide">{{ j.file.server.name }}</td>
+<td><span class="badge {{ j.status }}">{{ j.get_status_display }}</span></td><td class="num">{{ j.percent|floatformat:0 }}</td>
+<td class="hide num">{{ j.size_before|filesizeformat }}{% if j.size_after %} → {{ j.size_after|filesizeformat }} ({{ j.gain_pct|floatformat:1 }}%){% endif %}</td>
+<td class="hide">{{ j.created|date:"d/m H:i" }}</td>
+<td><form class="inline" method="post" action="{% url 'job_action' j.pk %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+{% if j.status == 'queued' or j.status == 'running' %}<button class="danger sm" name="action" value="cancel">Annuler</button>{% endif %}
+{% if j.status == 'queued' %}<button class="sec sm" name="action" value="top">En tête</button>{% endif %}
+{% if j.status == 'error' or j.status == 'cancelled' or j.status == 'nogain' %}<button class="sec sm" name="action" value="retry">Relancer</button>{% endif %}
+</form></td></tr>
+{% empty %}<tr><td colspan="8" class="mut">Aucun job.</td></tr>{% endfor %}
+</table>
+<div class="small mut" style="margin-top:8px">{% if page.has_previous %}<a href="?status={{ st }}&page={{ page.previous_page_number }}">◀</a>{% endif %} page {{ page.number }}/{{ page.paginator.num_pages }} {% if page.has_next %}<a href="?status={{ st }}&page={{ page.next_page_number }}">▶</a>{% endif %}</div>
+</div>
+{% endblock %}

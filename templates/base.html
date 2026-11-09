@@ -1,0 +1,64 @@
+{% load static %}<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}GPU Transcoder{% endblock %}</title>
+<style>
+:root{--bg:#0f1115;--card:#171a21;--line:#262b36;--txt:#e6e8ee;--mut:#8b93a7;--acc:#4f8cff;--ok:#2ecc71;--warn:#f1c40f;--err:#e74c3c;--run:#9b59b6}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
+nav{display:flex;gap:4px;align-items:center;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line);flex-wrap:wrap}
+nav .brand{font-weight:700;margin-right:12px}nav a{padding:6px 10px;border-radius:6px;color:var(--txt)}nav a.on,nav a:hover{background:var(--line);text-decoration:none}
+nav .sp{flex:1}nav .mut{color:var(--mut);font-size:12px}
+main{padding:16px;max-width:1400px;margin:0 auto}
+h1{font-size:20px;margin:0 0 14px}h2{font-size:15px;margin:18px 0 8px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.kpi .v{font-size:22px;font-weight:700}.kpi .l{color:var(--mut);font-size:12px}
+table{width:100%;border-collapse:collapse}th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}th{color:var(--mut);font-weight:600;font-size:12px;text-transform:uppercase}
+tr:hover td{background:#1c2029}td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:var(--line);color:var(--txt)}
+.badge.done,.badge.ok{background:#1e5a3a;color:#bff3d2}.badge.error,.badge.err{background:#6a1f1b;color:#ffd0cc}.badge.running,.badge.run{background:#4a2a6e;color:#e9d5ff}
+.badge.queued{background:#2a3a5e;color:#cfe0ff}.badge.nogain,.badge.warn{background:#5a4a12;color:#fff1b8}.badge.new{background:#2a3a5e;color:#cfe0ff}.badge.ignored,.badge.cancelled{color:var(--mut)}
+.bar{height:10px;background:var(--line);border-radius:999px;overflow:hidden}.bar>i{display:block;height:100%;background:linear-gradient(90deg,#4f8cff,#9b59b6);transition:width .6s}
+.bar.ok>i{background:var(--ok)}.bar.big{height:16px}
+button,.btn{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:7px 12px;font:inherit;cursor:pointer}button.sec,.btn.sec{background:var(--line)}button.danger{background:var(--err)}button.sm{padding:4px 8px;font-size:12px}
+input,select{background:#0f1115;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font:inherit}input[type=checkbox]{width:16px;height:16px}
+form.inline{display:inline}label{display:block;margin:8px 0 4px;color:var(--mut);font-size:12px}
+.msg{padding:10px 12px;border-radius:8px;margin-bottom:10px;background:#1e3a5a}.msg.success{background:#1e5a3a}.msg.error{background:#6a1f1b}.msg.warning{background:#5a4a12}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.mut{color:var(--mut)}.small{font-size:12px}
+pre{background:#0b0d11;border:1px solid var(--line);border-radius:8px;padding:10px;overflow:auto;max-height:480px;font-size:12px;white-space:pre-wrap;word-break:break-all}
+.job{border-bottom:1px solid var(--line);padding:10px 0}.job:last-child{border:0}.job .t{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.job .n{font-weight:600}.job .m{color:var(--mut);font-size:12px;display:flex;gap:14px;flex-wrap:wrap;margin-top:4px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--err);margin-right:5px}.dot.on{background:var(--ok)}
+@media(max-width:700px){td.hide,th.hide{display:none}main{padding:10px}}
+</style>
+</head>
+<body>
+<nav>
+<span class="brand">🎞 GPU Transcoder</span>
+<a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}on{% endif %}">Tableau de bord</a>
+<a href="{% url 'servers' %}" class="{% if 'server' in request.resolver_match.url_name or request.resolver_match.url_name == 'browse' %}on{% endif %}">Serveurs</a>
+<a href="{% url 'files' %}" class="{% if request.resolver_match.url_name == 'files' %}on{% endif %}">Fichiers</a>
+<a href="{% url 'jobs' %}" class="{% if 'job' in request.resolver_match.url_name %}on{% endif %}">Jobs</a>
+<a href="{% url 'scans' %}" class="{% if request.resolver_match.url_name == 'scans' %}on{% endif %}">Scans</a>
+<a href="{% url 'search' %}" class="{% if request.resolver_match.url_name == 'search' %}on{% endif %}">Recherche</a>
+<a href="{% url 'settings' %}" class="{% if request.resolver_match.url_name == 'settings' %}on{% endif %}">Réglages</a>
+{% if user.is_superuser %}<a href="{% url 'users' %}" class="{% if 'user' in request.resolver_match.url_name %}on{% endif %}">Utilisateurs</a>{% endif %}
+<form method="get" action="{% url 'search' %}" class="inline" style="margin-left:6px"><input name="q" placeholder="🔍 nom de fichier…" style="width:200px;padding:5px 8px"></form>
+<span class="sp"></span>
+<span class="mut">{{ user.username }}</span>
+<form method="post" action="{% url 'logout' %}" class="inline">{% csrf_token %}<button class="sec sm">Déconnexion</button></form>
+</nav>
+<main>
+{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}
+{% block content %}{% endblock %}
+</main>
+<script>
+function hsize(b){if(!b)return'0 o';const u=['o','Ko','Mo','Go','To'];let i=0;while(b>=1000&&i<u.length-1){b/=1000;i++}return b.toFixed(i>=3?2:1)+' '+u[i]}
+function hdur(s){if(s==null||isNaN(s))return'–';s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return(h?h+'h ':'')+String(m).padStart(2,'0')+'m '+String(x).padStart(2,'0')+'s'}
+</script>
+{% block js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{% if server %}Modifier {{ server.name }}{% else %}Nouveau serveur source{% endif %}</h1>
+<div class="card" style="max-width:560px">
+<form method="post">{% csrf_token %}
+{{ form.non_field_errors }}
+{% for f in form %}<label>{{ f.label }}</label>{{ f }}{% if f.errors %}<div class="msg error">{{ f.errors|striptags }}</div>{% endif %}{% endfor %}
+<div class="small mut" style="margin-top:8px">Clé : nom d'un fichier présent dans <span class="mono">keys/</span>{% if keys %} ({{ keys|join:", " }}){% endif %}. Si vide, le mot de passe est utilisé.</div>
+<div class="row" style="margin-top:14px"><button>Enregistrer et tester</button><a class="btn sec" href="{% url 'servers' %}">Annuler</a></div>
+</form></div>
+{% endblock %}

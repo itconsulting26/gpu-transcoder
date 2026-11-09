@@ -1,0 +1,10 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Connexion</title>
+<style>body{margin:0;background:#0f1115;color:#e6e8ee;font:14px system-ui,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center}
+form{background:#171a21;border:1px solid #262b36;border-radius:10px;padding:24px;width:320px}h1{font-size:18px;margin:0 0 14px}
+label{display:block;margin:10px 0 4px;color:#8b93a7;font-size:12px}input{width:100%;box-sizing:border-box;background:#0f1115;color:#e6e8ee;border:1px solid #262b36;border-radius:6px;padding:8px}
+button{margin-top:16px;width:100%;background:#4f8cff;color:#fff;border:0;border-radius:6px;padding:9px;font:inherit;cursor:pointer}.err{color:#ffb3ad;font-size:12px}</style></head>
+<body><form method="post">{% csrf_token %}<h1>🎞 GPU Transcoder</h1>
+{% if form.errors %}<div class="err">Identifiants incorrects.</div>{% endif %}
+<label>Utilisateur</label><input name="username" autofocus autocomplete="username">
+<label>Mot de passe</label><input name="password" type="password" autocomplete="current-password">
+<input type="hidden" name="next" value="{{ next }}"><button>Se connecter</button></form></body></html>

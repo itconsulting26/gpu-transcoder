@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Utilisateurs</h1>
+<div class="card"><h2>Ajouter un utilisateur</h2>
+<form method="post" action="{% url 'user_add' %}" class="row">{% csrf_token %}
+<input name="username" placeholder="identifiant" required autocomplete="off">
+<input name="password" type="password" placeholder="mot de passe (8 car. min)" required autocomplete="new-password">
+<label style="margin:0;display:flex;align-items:center;gap:6px"><input type="checkbox" name="admin" value="1"> administrateur</label>
+<button>Créer</button>
+<span class="mut small">Un utilisateur simple peut tout faire sauf gérer les comptes ; un admin a en plus cette page et /admin/.</span>
+</form></div>
+<div class="card"><table>
+<tr><th>Identifiant</th><th>Rôle</th><th class="hide">Dernière connexion</th><th>Mot de passe</th><th></th></tr>
+{% for u in users %}
+<tr><td><b>{{ u.username }}</b>{% if u == request.user %} <span class="badge">vous</span>{% endif %}</td>
+<td>{% if u.is_superuser %}<span class="badge ok">admin</span>{% else %}<span class="badge">utilisateur</span>{% endif %}</td>
+<td class="hide">{{ u.last_login|date:"d/m/Y H:i"|default:"jamais" }}</td>
+<td><form method="post" action="{% url 'user_password' u.pk %}" class="row inline">{% csrf_token %}<input name="password" type="password" placeholder="nouveau mot de passe" autocomplete="new-password" style="width:170px"><button class="sec sm">Changer</button></form></td>
+<td class="row">{% if u != request.user %}
+<form method="post" action="{% url 'user_toggle' u.pk %}" class="inline">{% csrf_token %}<button class="sec sm">{% if u.is_superuser %}Rétrograder{% else %}Promouvoir admin{% endif %}</button></form>
+<form method="post" action="{% url 'user_delete' u.pk %}" class="inline" onsubmit="return confirm('Supprimer {{ u.username }} ?')">{% csrf_token %}<button class="danger sm">Supprimer</button></form>
+{% endif %}</td></tr>
+{% endfor %}
+</table></div>
+{% endblock %}

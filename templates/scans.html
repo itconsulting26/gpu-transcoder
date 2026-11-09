@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Scans</h1>
+<div class="card"><table>
+<tr><th>Serveur</th><th>Dossier</th><th>État</th><th class="num">Vus</th><th class="num">Analysés</th><th class="num">À transcoder</th><th class="hide">Créé</th><th></th></tr>
+{% for s in scans %}
+<tr><td>{{ s.server.name }}</td><td class="mono small">{{ s.path }}{% if not s.recursive %} <span class="badge">non récursif</span>{% endif %}{% if s.current %}<div class="mut">{{ s.current }}</div>{% endif %}{% if s.error %}<div class="msg error">{{ s.error }}</div>{% endif %}</td>
+<td><span class="badge {{ s.status }}">{{ s.get_status_display }}</span></td><td class="num">{{ s.files_seen }}</td><td class="num">{{ s.files_probed }}</td><td class="num">{{ s.files_flagged }}</td>
+<td class="hide">{{ s.created|date:"d/m H:i" }}</td>
+<td>{% if s.status == 'queued' or s.status == 'running' %}<form class="inline" method="post" action="{% url 'scan_cancel' s.pk %}">{% csrf_token %}<button class="danger sm">Annuler</button></form>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="8" class="mut">Aucun scan. Lance-en un depuis « Parcourir » sur un serveur.</td></tr>{% endfor %}
+</table></div>
+<script>{% if scans %}setTimeout(()=>location.reload(),5000){% endif %}</script>
+{% endblock %}

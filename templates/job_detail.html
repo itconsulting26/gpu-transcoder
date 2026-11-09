@@ -1,0 +1,39 @@
+{% extends "base.html" %}{% load humanize %}
+{% block content %}
+<h1>Job #{{ job.pk }} — {{ job.file.name }}</h1>
+<div class="card">
+<div class="row" style="justify-content:space-between"><span id="st"><span class="badge {{ job.status }}">{{ job.get_status_display }}</span> <span class="mut" id="ph">{{ job.get_phase_display }}</span></span>
+<form class="inline" method="post" action="{% url 'job_action' job.pk %}">{% csrf_token %}
+{% if job.is_active %}<button class="danger sm" name="action" value="cancel">Annuler</button>{% endif %}
+{% if job.status == 'error' or job.status == 'cancelled' or job.status == 'nogain' %}<button class="sm" name="action" value="retry">Relancer</button>{% endif %}
+{% if not job.is_active %}<button class="sec sm" name="action" value="delete" onclick="return confirm('Supprimer ce job de l\'historique ?')">Supprimer</button>{% endif %}
+</form></div>
+<div class="bar big" style="margin:10px 0"><i id="bar" style="width:{{ job.percent }}%"></i></div>
+<div class="row mut small" id="m" style="gap:16px">
+<span><b id="pct">{{ job.percent|floatformat:1 }}</b>%</span><span id="t"></span><span id="sp"></span><span id="fps"></span><span id="br"></span><span id="sz"></span><span id="eta"></span>
+</div>
+</div>
+<div class="grid">
+<div class="card"><h2>Fichier</h2>
+<div class="mono small">{{ job.file.server.name }} : {{ job.file.path }}</div>
+<div class="small" style="margin-top:6px">{{ job.file.vcodec }}{% if job.file.is_10bit %} 10 bits{% endif %} · {{ job.file.width }}x{{ job.file.height }} · {{ job.file.duration|floatformat:0 }} s · {{ job.file.bitrate_kbps|intcomma }} kb/s (vidéo {{ job.file.vbitrate_kbps|intcomma }}, audio {{ job.file.abitrate_kbps|intcomma }}) · {{ job.file.audio_streams }} audio, {{ job.file.sub_streams }} sous-titres</div></div>
+<div class="card"><h2>Résultat</h2>
+<div class="small">Avant : {{ job.size_before|filesizeformat }}{% if job.size_after %} → Après : {{ job.size_after|filesizeformat }} (<b>gain {{ job.gain_pct|floatformat:1 }}%</b>){% endif %}</div>
+<div class="small">Encodeur : {{ job.target_codec|default:"–" }} · décodage {% if job.hw_decode %}GPU{% else %}CPU{% endif %} · tentative {{ job.attempt }}</div>
+<div class="small">Démarré : {{ job.started|date:"d/m/Y H:i:s"|default:"–" }} · Terminé : {{ job.finished|date:"d/m/Y H:i:s"|default:"–" }}</div>
+{% if job.error %}<div class="msg error" style="margin-top:8px">{{ job.error }}</div>{% endif %}</div>
+</div>
+<h2>Commande ffmpeg</h2><pre>{{ job.ffmpeg_cmd|default:"–" }}</pre>
+<h2>Journal</h2><pre id="log">{{ job.log|default:"–" }}</pre>
+{% endblock %}
+{% block js %}
+{% if job.is_active %}<script>
+async function tick(){const r=await fetch('/api/status/');const d=await r.json();const j=[...d.active,...d.queued].find(x=>x.id=={{ job.pk }});
+if(!j){location.reload();return}
+document.getElementById('bar').style.width=j.percent+'%';document.getElementById('pct').textContent=j.percent.toFixed(1);
+document.getElementById('ph').textContent=j.phase_label;document.getElementById('t').textContent='⏱ '+hdur(j.out_time_s)+' / '+hdur(j.duration);
+document.getElementById('sp').textContent='⚡ '+(j.speed?j.speed.toFixed(2)+'×':'–');document.getElementById('fps').textContent='🎞 '+(j.fps?Math.round(j.fps)+' fps':'–');
+document.getElementById('br').textContent='📶 '+(j.out_bitrate_kbps?Math.round(j.out_bitrate_kbps)+' kb/s':'–');document.getElementById('sz').textContent='💾 '+hsize(j.out_size)+' / '+hsize(j.size_before);
+document.getElementById('eta').textContent='⌛ reste '+(j.eta_s!=null?hdur(j.eta_s):'–')+' · écoulé '+hdur(j.elapsed_s);}
+tick();setInterval(tick,2000);</script>{% endif %}
+{% endblock %}
