@@ -89,6 +89,10 @@ All secrets come from environment variables (`.env`), never from the code:
 
 See [TODO.md](TODO.md) for the roadmap.
 
+## License
+
+[MIT](LICENSE)
+
 ## Author
 
 Chafik Lounici — ITC Consulting

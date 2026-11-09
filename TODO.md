@@ -28,7 +28,7 @@
 - [ ] Option to use PostgreSQL instead of SQLite for larger libraries
 
 ## Project
-- [ ] Add a LICENSE file
+- [x] Add a LICENSE file (MIT)
 - [ ] Add screenshots to the README
 - [ ] GitHub Actions: lint (ruff) and build the Docker image
 - [ ] Publish the image to GitHub Container Registry
